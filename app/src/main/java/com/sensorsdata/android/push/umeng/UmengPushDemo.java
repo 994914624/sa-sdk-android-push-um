@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
 import android.util.Log;
-
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.umeng.commonsdk.UMConfigure;
 import com.umeng.message.IUmengRegisterCallback;
@@ -12,30 +11,28 @@ import com.umeng.message.PushAgent;
 import com.umeng.message.UmengNotificationClickHandler;
 import com.umeng.message.UmengNotifyClickActivity;
 import com.umeng.message.entity.UMessage;
-
 import org.android.agoo.common.AgooConstants;
 import org.json.JSONObject;
-
 import java.util.Iterator;
 import java.util.Map;
 
 /**
  * Created by yzk on 2019-11-25
  *
- * 友盟推送，神策 SF 推送消息埋点示例及说明。标注 "TO DO" 的为开发者要做的或者要注意的。
+ * 友盟推送，神策智能运营推送消息埋点示例及说明。标注 "TO DO" 的为开发者要做的或者要注意的。
  *
  * 具体说明（开发者要做的）：
  * 一、埋点 "App 打开推送消息"
  *   1.1 需要在 launchApp、openUrl、openActivity、dealWithCustomAction 这 4 个接口中，调用 trackAppOpenNotification(uMessage.extra, uMessage.title, uMessage.text);
- *   1.2 如果使用了厂商通道需要在处理厂商通道的 Activity 的 onMessage 接口中处理消息，调用 trackAppOpenNotification(uMessage.extra, uMessage.title, uMessage.text);
+ *   1.2 如果使用了厂商通道需要在处理厂商通道的 Activity 的 onMessage 接口中处理消息，调用 trackAppOpenNotification(extraStr, title, content);
  *
  * 二、上报 "推送 ID"
  *   2.1 在 IUmengRegisterCallback 的 onSuccess 接口中，调用 SensorsDataAPI.sharedInstance().profilePushId("umeng_id", token);
  *   2.2 在调用神策 SDK login 接口之后。调用 SensorsDataAPI.sharedInstance().profilePushId("umeng_id",PushAgent.getInstance(this).getRegistrationId());
  *
- * 三、处理神策 SF 推送的 "打开 URL 消息"、"自定义消息"，做页面跳转
+ * 三、处理神策智能运营推送的 "打开 App 消息"、"打开 URL 消息"、"自定义消息"
  *   3.1 需要在友盟 UmengNotificationClickHandler 的 launchApp 接口中，调用 handleSFPushMessage(uMessage.extra); 同时在 handleSFPushMessage 方法内加上自己的业务跳转逻辑。
- *   3.2 如果使用了厂商通道需要在处理厂商通道的 Activity 的 onMessage 接口中处理消息，调用 handleSFPushMessage(uMessage.extra); 同时在 handleSFPushMessage 方法内加上自己的业务跳转逻辑。
+ *   3.2 如果使用了厂商通道需要在处理厂商通道的 Activity 的 onMessage 接口中处理消息，调用 handleSFPushMessage(extraStr); 同时在 handleSFPushMessage 方法内加上自己的业务跳转逻辑。
  *
  * 具体接入过程中，如果有什么疑问，请及时在微信群里提出来！！！
  */
@@ -48,9 +45,6 @@ public class UmengPushDemo {
     public static void init(Context context) {
         if (context == null) return;
         UMConfigure.init(context, "XXX", "XXX", UMConfigure.DEVICE_TYPE_PHONE, "XXX");
-        //HuaWeiRegister.register(context);// 友盟-华为通道
-        //MiPushRegistar.register( this,"xx","xx");// 友盟-小米通道
-        //……
 
         // 推送 ID 的处理
         PushAgent.getInstance(context).register(new IUmengRegisterCallback() {
@@ -74,7 +68,7 @@ public class UmengPushDemo {
                 super.launchApp(context, uMessage);
                 // TODO 埋点 App 打开推送消息 事件
                 trackAppOpenNotification(uMessage.extra, uMessage.title, uMessage.text);
-                // TODO 处理自定义消息（神策 SF 发的推送消息必须在 launchApp 接口中处理）
+                // TODO 处理神策智能运营推送消息的动作（神策智能运营的推送消息必须在 launchApp 接口中处理）
                 handleSFPushMessage(uMessage.extra);
             }
 
@@ -118,11 +112,11 @@ public class UmengPushDemo {
          */
         @Override
         public void onMessage(Intent intent) {
-            super.onMessage(intent);  //此方法必须调用，否则无法统计打开数
+            super.onMessage(intent);
             if (intent != null) {
                 // TODO 如果你们使用了友盟的厂商通道消息，需要在 onMessage 处理厂商通道消息！！！
                 String messageBody = intent.getStringExtra(AgooConstants.MESSAGE_BODY);
-                Log.i("TODO", "厂商通道消息：" + messageBody);
+                Log.e("TODO", "厂商通道消息：" + messageBody);
                 if (!TextUtils.isEmpty(messageBody)) {
                     try {
                         JSONObject push = new JSONObject(messageBody);
@@ -130,7 +124,7 @@ public class UmengPushDemo {
                         String extraStr = null;
                         if (extra != null) {
                             extraStr = extra.toString();
-                            // TODO 处理神策推送消息
+                            // TODO 处理神策智能运营推送消息的动作
                             handleSFPushMessage(extraStr);
                         }
                         // 推送标题
@@ -139,7 +133,7 @@ public class UmengPushDemo {
                         String content = push.optJSONObject("body").optString("text");
                         // TODO 埋点 App 打开推送消息 事件
                         trackAppOpenNotification(extraStr, title, content);
-                        Log.i("TODO", String.format("title： %s。content：%s。sf_data： %s。", title, content, extraStr));
+                        Log.e("TODO", String.format("title： %s。content：%s。extraStr： %s。", title, content, extraStr));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -149,7 +143,7 @@ public class UmengPushDemo {
     }
 
 
-    // ---------------------------------------- 下边是神策 SF 推送埋点示例代码 ----------------------------------------
+    // ---------------------------------------- 下边是 神策智能运营 推送埋点示例代码 ----------------------------------------
 
     /**
      * 埋点 App 打开推送消息
@@ -207,8 +201,8 @@ public class UmengPushDemo {
     }
 
     /**
-     * 处理神策 SF 自定义消息，做页面跳转。
-     * TODO 此方法只是解析了神策 SF 推送消息，具体的业务跳转逻辑需要开发者加上！！！
+     * 处理神策智能运营推送消息。
+     * TODO 此方法只是解析了神策智能运营的推送消息，具体的业务跳转逻辑需要开发者加上！！！
      *
      * @param notificationExtras 推送消息的 extra
      */
@@ -224,20 +218,21 @@ public class UmengPushDemo {
             }
             if (!TextUtils.isEmpty(sfData)) {
                 JSONObject sfJson = new JSONObject(sfData);
-                if ("CUSTOMIZED".equals(sfJson.optString("sf_landing_type"))) {
-                    JSONObject custom = sfJson.optJSONObject("customized");
-                    if (custom != null) {
-                        // TODO 处理自定义消息中的字段，做自页面跳转等
-                        Log.i("TODO", String.format("-- 请处理自定义字段，做自页面跳转等 --: %s", custom.toString()));
-                    }
+                if ("OPEN_APP".equals(sfJson.optString("sf_landing_type"))) {
+                    // TODO 处理打开 App 消息，--> 请启动 App
+                    Log.e("TODO", "-- 请启动 App --");
                 } else if ("LINK".equals(sfJson.optString("sf_landing_type"))) {
                     String url = sfJson.optString("sf_link_url");
-                    if(!TextUtils.isEmpty(url)){
-                        // TODO 处理打开 URL 的消息
-                        Log.i("TODO","-- 请处理 URL --: " + url);
+                    if (!TextUtils.isEmpty(url)) {
+                        // TODO 处理打开 URL 消息，--> 请处理 URL
+                        Log.e("TODO", "-- 请处理打开 URL --: " + url);
                     }
-                } else if ("OPEN_APP".equals(sfJson.optString("sf_landing_type"))) {
-                    // 由于神策 SF 消息每次都会打开 App 此处无需做处理
+                } else if ("CUSTOMIZED".equals(sfJson.optString("sf_landing_type"))) {
+                    JSONObject custom = sfJson.optJSONObject("customized");
+                    if (custom != null) {
+                        // TODO 处理自定义消息，--> 请处理自定义消息
+                        Log.e("TODO", "-- 请处理自定义消息--: " + custom);
+                    }
                 }
             }
         } catch (Exception e) {
